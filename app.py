@@ -1,68 +1,40 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sat May 15 14:12:58 2021
-
-@author: Krishna
-"""
-
-from flask import Flask,render_template,request
-import pickle
-import jsonify
-import requests
-import pickle
 import numpy as np
-import sklearn
-from sklearn.preprocessing import StandardScaler
+import pandas as pd
+from flask import Flask, request, render_template
+import pickle
 
 app = Flask(__name__)
-model = pickle.load(open('Heart_attack_predictions.pkl','rb'))
-@app.route('/',methods=['GET'])
+model = pickle.load(open('breast_cancer_detector.pickle', 'rb'))
 
-
-def hello_world():
+@app.route('/')
+def home():
     return render_template('index.html')
-std_scale=StandardScaler()
 
-
-
-@app.route("/predict",method=['POST'])
+@app.route('/predict',methods=['POST'])
 def predict():
+    input_features = [float(x) for x in request.form.values()]
+    features_value = [np.array(input_features)]
+    
+    features_name = ['mean radius', 'mean texture', 'mean perimeter', 'mean area',
+       'mean smoothness', 'mean compactness', 'mean concavity',
+       'mean concave points', 'mean symmetry', 'mean fractal dimension',
+       'radius error', 'texture error', 'perimeter error', 'area error',
+       'smoothness error', 'compactness error', 'concavity error',
+       'concave points error', 'symmetry error', 'fractal dimension error',
+       'worst radius', 'worst texture', 'worst perimeter', 'worst area',
+       'worst smoothness', 'worst compactness', 'worst concavity',
+       'worst concave points', 'worst symmetry', 'worst fractal dimension']
+    
+    df = pd.DataFrame(features_value, columns=features_name)
+    output = model.predict(df)
+        
+    if output == 0:
+        res_val = "** breast cancer **"
+    else:
+        res_val = "no breast cancer"
+        
 
-   if request.method == 'POST':
-    age = float(request.form['age'])
-    anaemia = int(requests.form['anaemia'])
+    return render_template('index.html', prediction_text='Patient has {}'.format(res_val))
 
-
-
-    creatinine_phosphokinase = int(requests.form['creatinine_phosphokinase'])
-    diabetes = int(requests.form['diabetes'])
-
-
-    ejection_fraction = int(requests.form['ejection_fraction'])
-    high_blood_pressure= int(requests.form['high_blood_pressure'])
-
-
-    platelets=int(requests.form['platelets'])
-
-    serum_creatinine=int(requests.form['serum_creatinine'])
-
-    serum_sodium=int(requests.form['serum_sodium'])
-
-    sex=int(requests.form['Sex'])
-
-    smoking=int(requests.form['smoking'])
-
-
-    lst1 = [[age, anaemia, creatinine_phosphokinase, diabetes, ejection_fraction, high_blood_pressure, platelets,
-         serum_creatinine, serum_sodium, sex, smoking]]
-    lst2=std_scale.fit_transform(lst1)
-
-    prediction=model.predict(lst1)
-    prediction=int(prediction)
-   if prediction==1:
-    print("The patient will suffer from cardiac arrest")
-   else:
-    print("The patient will survive")
-
-   if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run()
